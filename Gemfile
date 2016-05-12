@@ -4,13 +4,13 @@ ruby File.read('.ruby-version').strip
 
 # gems that have rails engines are are always needed
 group :preload do
-  gem 'rails', '~> 4.2.0'
+  gem 'rails', '5.0.0'
   gem 'dotenv'
   gem 'sse-rails-engine'
 
   # AR extensions
   gem 'goldiloader'
-  gem 'kaminari'
+  gem 'kaminari', '~> 0.17.0'
   gem 'active_model_serializers'
   gem 'paper_trail'
   gem 'soft_deletion'
@@ -23,7 +23,7 @@ end
 gem 'bundler'
 gem 'dogstatsd-ruby'
 gem 'puma'
-gem 'attr_encrypted'
+gem 'attr_encrypted', git: 'git@github.com:attr-encrypted/attr_encrypted.git' # need > 3.0.1
 gem 'sawyer'
 gem 'dalli'
 gem 'omniauth'
@@ -123,7 +123,8 @@ group :development, :test do
 end
 
 group :test do
-  gem 'minitest-rails'
+  gem 'minitest-rails', '3.0.0'
+  gem 'rails-controller-testing'
   gem 'maxitest'
   gem 'mocha'
   gem 'webmock'
