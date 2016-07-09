@@ -332,6 +332,13 @@ ActiveRecord::Schema.define(version: 20160701215002) do
   add_index "slack_channels", ["stage_id"], name: "index_slack_channels_on_stage_id", using: :btree
   add_index "secrets", ["id"], name: "index_secrets_on_id", unique: true, length: {"id"=>191}, using: :btree
 
+  create_table "slack_identifiers", force: :cascade do |t|
+    t.integer  "user_id",    limit: 4
+    t.text     "identifier", limit: 65535, null: false
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
   create_table "slack_webhooks", force: :cascade do |t|
     t.text     "webhook_url", limit: 65535, null: false
     t.string   "channel",     limit: 255
