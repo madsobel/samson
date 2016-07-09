@@ -1,6 +1,51 @@
 <h1>Connect to Slack</h1>
 
 <p>
+  Flash an error if we get <code>?error=access_denied</code>.
+</p>
+<p>
+  If params are empty, send user to
+  <a href="https://slack.com/oauth/authorize?client_id=<%= ENV['SLACK_CLIENT_ID'] %>&redirect_uri=<%=u url_for only_path: false %>&scope=<%=u 'chat:write:bot,commands,identify' %>">
+    this URL
+  </a>.
+  Maybe only ask for <code>chat:write:bot</code> and <code>commands</code> if we don't already have a bot token, like <a href="https://slack.com/oauth/authorize?client_id=<%= ENV['SLACK_CLIENT_ID'] %>&redirect_uri=<%=u url_for only_path: false %>&scope=<%=u 'identify' %>">this</a>.
+  Trello asks for <code>bot,commands,team:read,users:read</code>.
+  The response will be something like this:
+  <pre>http://localhost:3000/slack/oauth?code=17356782614.58221678693.b3594074c2&state=</pre>
+  POST the code to <code>https://slack.com/api/oauth.access</code> with this payload:
+  <pre>
+    {
+      client_id: client_id
+      client_secret: client_secret
+      code: code we just received
+      redirect_uri: <%= url_for only_path: false %>
+    }</pre>
+  Should get back a payload like this (all scopes):
+  <pre>
+    {
+      "access_token": "xoxp-17356782614-17356581351-58224201173-fc5d936cad",
+      "ok": true,
+      "scope": "identify,commands,chat:write:bot",
+      "team_id": "T0HAGP0J2",
+      "team_name": "Straub & Co.",
+      "user_id": "U0HAGH3AB",
+      "warning": "superfluous_charset"
+  }</pre>
+  Or this (only <code>identify</code>):
+  <pre>
+  {
+    "access_token": "xoxp-17356782614-17356581351-58231052257-85f0029346",
+    "ok": true,
+    "scope": "identify",
+    "team_id": "T0HAGP0J2",
+    "team_name": "Straub & Co.",
+    "user_id": "U0HAGH3AB",
+    "warning": "superfluous_charset"
+  }</pre>
+  Need to store <code>access_token</code> somewhere.
+</p>
+
+<p>
   Looks like you want to connect to Slack. Are all these things correct?
 </p>
 
