@@ -1,4 +1,20 @@
 <h1>Connect to Slack</h1>
+<p>
+  <% if @need_to_connect_app %>
+    Install the app by clicking this button:
+    <a class='btn btn-default' href="https://slack.com/oauth/authorize?client_id=<%= ENV['SLACK_CLIENT_ID'] %>&redirect_uri=<%=u url_for only_path: false %>&scope=<%=u 'chat:write:bot,commands,identify' %>">Button</a>
+  <% elsif @need_to_connect_user %>
+    Samson is connected to Slack, but doesn't know who you are there. Click this button:
+    <a class='btn btn-default' href="https://slack.com/oauth/authorize?client_id=<%= ENV['SLACK_CLIENT_ID'] %>&redirect_uri=<%=u url_for only_path: false %>&scope=<%=u 'identify' %>">Button</a>
+  <% else %>
+    Samson and you are already connected to Slack.
+  <% end %>
+</p>
+
+
+<pre>
+  <%= params %>
+</pre>
 
 <p>
   Flash an error if we get <code>?error=access_denied</code>.
@@ -8,7 +24,8 @@
   <a href="https://slack.com/oauth/authorize?client_id=<%= ENV['SLACK_CLIENT_ID'] %>&redirect_uri=<%=u url_for only_path: false %>&scope=<%=u 'chat:write:bot,commands,identify' %>">
     this URL
   </a>.
-  Maybe only ask for <code>chat:write:bot</code> and <code>commands</code> if we don't already have a bot token, like <a href="https://slack.com/oauth/authorize?client_id=<%= ENV['SLACK_CLIENT_ID'] %>&redirect_uri=<%=u url_for only_path: false %>&scope=<%=u 'identify' %>">this</a>.
+  Maybe only ask for <code>chat:write:bot</code> and <code>commands</code> if we don't already have a bot token, like
+  <a href="https://slack.com/oauth/authorize?client_id=<%= ENV['SLACK_CLIENT_ID'] %>&redirect_uri=<%=u url_for only_path: false %>&scope=<%=u 'identify' %>">this</a>.
   Trello asks for <code>bot,commands,team:read,users:read</code>.
   The response will be something like this:
   <pre>http://localhost:3000/slack/oauth?code=17356782614.58221678693.b3594074c2&state=</pre>
