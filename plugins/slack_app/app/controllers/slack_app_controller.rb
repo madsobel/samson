@@ -4,7 +4,7 @@ class SlackAppController < ApplicationController
   skip_before_action :verify_authenticity_token, except: :oauth
   skip_around_action :login_user, except: :oauth
 
-  before_filter do
+  before_action do
     @app_token = SlackIdentifier.app_token
     Slack.configure do |config|
       config.token = @app_token
@@ -31,27 +31,84 @@ class SlackAppController < ApplicationController
   end
 
   def command
+    check_slack_inputs! params
+    render json: command_response
+  end
+
+  def interact
     # Interesting parts of the payload:
     # {
-    #   "token"=>"NYFq6ZZzvcxp9skfxDQjfe6n", <-- verify against app token in ENV
+    #   "actions"=>[
+    #     {"name"=>"one", "value"=>"one"} <-- which button the user clicked
+    #   ],
+    #   "callback_id"=>"deploy-123456", <-- maps to a deployment
+    #   "user"=>{"id"=>"U0HAGH3AB", "name"=>"ben"}, <-- who clicked
+    #   "action_ts"=>"1468259216.482422", <-- need this to maybe update the message
+    #   "message_ts"=>"1468259019.000006",
+    #   "response_url"=>"https://hooks.slack.com/actions/T0HAGP0J2/58691408951/iHdjN2zjX0dZ5rXyl84Otql7"
+    # }
+    payload = JSON.parse(params[:payload])
+    check_slack_inputs!(payload)
+    render json: 'ok' # This replaces the original message
+  end
+
+  def check_slack_inputs!(params)
+    if params[:ssl_check]
+      render json: 'ok' if params['ssl_check']
+      return false
+    end
+    raise "Invalid Slack token" unless params['token'] == ENV['SLACK_VERIFICATION_TOKEN']
+  end
+
+  private
+
+  def command_response
+    # Interesting parts of params:
+    # {
     #   "user_id"=>"U0HAGH3AB", <-- look up Samson user using this
     #   "command"=>"/deploy",
     #   "text"=>"foo bar baz", <-- this is what to deploy
     #   "response_url"=>"https://hooks.slack.com/commands/T0HAGP0J2/58604540277/g0xd4K2KOsgL9zXwR4kEc0eL"
     #    ^^^^ This is how to respond later, we can also directly render some JSON
     # }
-    return render json: 'ok' if params['ssl_check']
     deployer_id = SlackIdentifier.find_by_identifier params['user_id']
     deployer = User.find_by_id deployer_id.user_id
-    return render json: unknown_user unless deployer
-    render json: {text: "Yes m'lord"}
+    return unknown_user unless deployer
+    {
+      text: "Deployment requested",
+      attachments: [
+        {
+          text: "Let's try this button thing.",
+          fallback: "Whoops, attachments aren't working right now.",
+          callback_id: 'deploy-123456',
+          color: 'warning',
+          attachment_type: 'default',
+          actions: [
+            button('Button :one:', 'one'),
+            button('Button :two:', 'two', confirm: true)
+          ]
+        }
+      ]
+    }
   end
 
-  def interact
-    # TODO
+  def button(text, value, options = {})
+    ret = {
+      name: value,
+      value: value,
+      text: text,
+      type: 'button'
+    }
+    if options[:confirm]
+      ret['confirm'] = {
+        title: 'Are you sure?',
+        text: 'Confirm approval of this deployment.',
+        ok_text: 'Confirm',
+        dismiss_text: 'Never mind'
+      }
+    end
+    ret
   end
-
-  private
 
   def unknown_user
     {
