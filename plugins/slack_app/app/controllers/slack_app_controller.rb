@@ -70,7 +70,7 @@ class SlackAppController < ApplicationController
     #    ^^^^ This is how to respond later, we can also directly render some JSON
     # }
     deployer_identifier = SlackIdentifier.find_by_identifier params['user_id']
-    deployer = User.find_by_id deployer_identifier.try(:user_id)
+    deployer = deployer_identifier.try(:user)
     return unknown_user unless deployer
 
     # Parse the command
