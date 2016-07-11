@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20160701215002) do
+ActiveRecord::Schema.define(version: 20160711222417) do
 
   create_table "builds", force: :cascade do |t|
     t.integer  "project_id",                       null: false
@@ -68,6 +68,13 @@ ActiveRecord::Schema.define(version: 20160701215002) do
 
   add_index "deploy_groups_stages", ["deploy_group_id"], name: "index_deploy_groups_stages_on_deploy_group_id", using: :btree
   add_index "deploy_groups_stages", ["stage_id"], name: "index_deploy_groups_stages_on_stage_id", using: :btree
+
+  create_table "deploy_response_urls", force: :cascade do |t|
+    t.integer  "deployment_id", limit: 4,   null: false
+    t.string   "response_url",  limit: 255, null: false
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
 
   create_table "deploys", force: :cascade do |t|
     t.integer  "stage_id",   limit: 4,   null: false
