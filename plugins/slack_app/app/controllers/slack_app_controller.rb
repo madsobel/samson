@@ -49,7 +49,7 @@ class SlackAppController < ApplicationController
     # }
     payload = JSON.parse(params[:payload])
     check_slack_inputs!(payload)
-    render json: 'ok' # This replaces the original message
+    render json: interact_response # This replaces the original message
   end
 
   def check_slack_inputs!(params)
@@ -60,8 +60,6 @@ class SlackAppController < ApplicationController
     raise "Invalid Slack token" unless params['token'] == ENV['SLACK_VERIFICATION_TOKEN']
   end
 
-  private
-
   def command_response
     # Interesting parts of params:
     # {
@@ -71,9 +69,38 @@ class SlackAppController < ApplicationController
     #   "response_url"=>"https://hooks.slack.com/commands/T0HAGP0J2/58604540277/g0xd4K2KOsgL9zXwR4kEc0eL"
     #    ^^^^ This is how to respond later, we can also directly render some JSON
     # }
-    deployer_id = SlackIdentifier.find_by_identifier params['user_id']
-    deployer = User.find_by_id deployer_id.user_id
+    deployer_identifier = SlackIdentifier.find_by_identifier params['user_id']
+    deployer = User.find_by_id deployer_identifier.try(:user_id)
     return unknown_user unless deployer
+
+    # Parse the command
+    projectname, branchname, stagename = params['text'].scan /(\S+)\/(\S+)\s*(?:to\s+(.*))?/
+    puts projectname, branchname, stagename
+    project = Project.find_by_name projectname
+    return unknown_project(projectname) unless project.present?
+    return unauthorized_deployer unless deployer.deployer_for?(project)
+    stage = project.stages.find_by_param!(stagename || 'production')
+    return unknown_stage(projectname, stagename) unless stage.present?
+
+    # create deployment, associate deployment with response_url (need a new table)
+    # This allows us to update the message 5 times in 30 minutes (should be enough)
+    # -> suggested, started, finished/errored
+
+  end
+
+  def interact_response(payload)
+    # This means someone clicked the "Approve" button in the channel
+    # TODO
+    # Is this user connected? If not, reply to them individually in a DM
+    # Can this user approve the deployment? If not, tell them in a DM, or maybe inline?
+    # Approve the
+    'ok'
+  end
+
+  def message_body_for_deployment(deployment)
+    # In progress -> "Deploying..."
+    # Waiting for buddy: message with buttons
+    # Done: ":tada:"
     {
       text: "Deployment requested",
       attachments: [
@@ -111,10 +138,21 @@ class SlackAppController < ApplicationController
   end
 
   def unknown_user
-    {
-      text: "Sorry, I don't recognize you. Perhaps you should visit " \
-            "#{url_for action: :oauth, only_path: false} " \
-            "to connect your account."
-    }
+    "Sorry, I don't recognize you. Perhaps you should visit " \
+    "#{url_for action: :oauth, only_path: false} " \
+    "to connect your account."
+  end
+
+  def unknown_project(name)
+    "Sorry, I don't know a project called `#{name}`."
+  end
+
+  def unknown_stage(project, stage)
+    "Sorry, `#{project}` doesn't have a stage named `#{stage}`."
+  end
+
+  def unauthorized_deployer(projectname)
+    "Sorry, it doesn't look like you have permission to create a deployment" \
+    "on `#{projectname}`."
   end
 end
