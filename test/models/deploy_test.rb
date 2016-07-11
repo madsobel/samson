@@ -31,7 +31,7 @@ describe Deploy do
     it "shows soft delete stage when with_deleted" do
       deploy.stage.soft_delete!
       deploy.reload
-      deploy.summary(with_deleted: true).must_equal "Deployer  deployed baz to Staging"
+      deploy.summary.must_equal "Deployer  deployed baz to Staging"
     end
 
     describe "when buddy was required" do
