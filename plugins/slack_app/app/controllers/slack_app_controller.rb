@@ -1,7 +1,7 @@
 require 'slack'
 
 class SlackAppController < ApplicationController
-  skip_before_action :verify_authenticity_token
+  skip_before_action :verify_authenticity_token, except: :oauth
 
   before_filter do
     @app_token = SlackIdentifier.app_token
@@ -20,11 +20,12 @@ class SlackAppController < ApplicationController
                                 client_secret: ENV['SLACK_CLIENT_SECRET'],
                                 code: params[:code],
                                 redirect_uri: url_for(only_path: false)
-      puts '!!!', resp, resp['access_token'], resp['user_id']
       if @need_to_connect_app
         @app_token = SlackIdentifier.create!(identifier: resp['access_token']).identifier
       end
-      SlackIdentifier.create!(user_id: current_user, identifier: resp['user_id'])
+      SlackIdentifier.create!(user_id: current_user.id, identifier: resp['user_id'])
+
+      redirect_to
     end
   end
 

@@ -1,82 +1,19 @@
 <h1>Connect to Slack</h1>
-<p>
-  <% if @need_to_connect_app %>
-    Install the app by clicking this button:
-    <a class='btn btn-default' href="https://slack.com/oauth/authorize?client_id=<%= ENV['SLACK_CLIENT_ID'] %>&redirect_uri=<%=u url_for only_path: false %>&scope=<%=u 'chat:write:bot,commands,identify' %>">Button</a>
-  <% elsif @need_to_connect_user %>
-    Samson is connected to Slack, but doesn't know who you are there. Click this button:
-    <a class='btn btn-default' href="https://slack.com/oauth/authorize?client_id=<%= ENV['SLACK_CLIENT_ID'] %>&redirect_uri=<%=u url_for only_path: false %>&scope=<%=u 'identify' %>">Button</a>
-  <% else %>
-    Samson and you are already connected to Slack.
-  <% end %>
-</p>
-
-
-<pre>
-  <%= params %>
-</pre>
-
-<p>
-  Flash an error if we get <code>?error=access_denied</code>.
-</p>
-<p>
-  If params are empty, send user to
-  <a href="https://slack.com/oauth/authorize?client_id=<%= ENV['SLACK_CLIENT_ID'] %>&redirect_uri=<%=u url_for only_path: false %>&scope=<%=u 'chat:write:bot,commands,identify' %>">
-    this URL
-  </a>.
-  Maybe only ask for <code>chat:write:bot</code> and <code>commands</code> if we don't already have a bot token, like
-  <a href="https://slack.com/oauth/authorize?client_id=<%= ENV['SLACK_CLIENT_ID'] %>&redirect_uri=<%=u url_for only_path: false %>&scope=<%=u 'identify' %>">this</a>.
-  Trello asks for <code>bot,commands,team:read,users:read</code>.
-  The response will be something like this:
-  <pre>http://localhost:3000/slack/oauth?code=17356782614.58221678693.b3594074c2&state=</pre>
-  POST the code to <code>https://slack.com/api/oauth.access</code> with this payload:
-  <pre>
-    {
-      client_id: client_id
-      client_secret: client_secret
-      code: code we just received
-      redirect_uri: <%= url_for only_path: false %>
-    }</pre>
-  Should get back a payload like this (all scopes):
-  <pre>
-    {
-      "access_token": "xoxp-17356782614-17356581351-58224201173-fc5d936cad",
-      "ok": true,
-      "scope": "identify,commands,chat:write:bot",
-      "team_id": "T0HAGP0J2",
-      "team_name": "Straub & Co.",
-      "user_id": "U0HAGH3AB",
-      "warning": "superfluous_charset"
-  }</pre>
-  Or this (only <code>identify</code>):
-  <pre>
-  {
-    "access_token": "xoxp-17356782614-17356581351-58231052257-85f0029346",
-    "ok": true,
-    "scope": "identify",
-    "team_id": "T0HAGP0J2",
-    "team_name": "Straub & Co.",
-    "user_id": "U0HAGH3AB",
-    "warning": "superfluous_charset"
-  }</pre>
-  Need to store <code>access_token</code> somewhere.
-</p>
-
-<p>
-  Looks like you want to connect to Slack. Are all these things correct?
-</p>
-
-<ul>
-  <li>(some)</li>
-  <li>(things)</li>
-  <li>(to)</li>
-  <li>(confirm)</li>
-</ul>
-
-<p>
-  <a href="/slack/oauth/confirm" class="btn btn-success">Yes, connect</a>
-</p>
-
-<p>
-  If not, just close this window. No harm done.
-</p>
+<% unless ENV['SLACK_CLIENT_ID'] %>
+  <div class="alert alert-danger">
+    Add <code>SLACK_CLIENT_ID</code> and <code>SLACK_CLIENT_SECRET</code> to your environment to enable this feature.
+  </div>
+<% else %>
+  <p>
+    <% if @need_to_connect_app %>
+      Samson isn't connected to Slack.
+      <%= link_to 'Connect to Slack', oauth_url('chat:write:bot,commands,identify'), class: 'btn btn-success' %>
+    <% elsif @need_to_connect_user %>
+      Samson needs to know your Slack user ID in order to enable the <code>/deploy</code> command.
+      <%= link_to 'Connect to Slack', oauth_url('identify'), class: 'btn btn-success' %>
+    <% else %>
+      Samson is connected to Slack, and knows who you are.
+      Now you can use the <code>/deploy</code> command from Slack.
+    <% end %>
+  </p>
+<% end %>
