@@ -18,7 +18,6 @@ describe SlackAppController do
     describe 'without Slack linkage' do
       it "returns a private error if the user isn't matched up" do
         post :command, user_id: 'notconnected'
-        puts @response.body
         assert "don't recognize you".in? @response.body
       end
     end
