@@ -16,7 +16,7 @@ class SlackMessage
       waiting_for_buddy_body
     elsif @deploy.running?
       running_body
-    elsif @deploy.failed?
+    elsif @deploy.failed? || @deploy.errored?
       failed_body
     elsif @deploy.succeeded?
       succeeded_body
