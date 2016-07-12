@@ -23,7 +23,7 @@ describe SlackAppController do
     end
 
     describe 'with Slack linkage' do
-      beforeEach do
+      before do
         # TODO: mock up a SlackIdentifier for one or more users
       end
     end

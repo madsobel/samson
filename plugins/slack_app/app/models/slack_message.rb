@@ -4,7 +4,7 @@ class SlackMessage
   end
 
   def deliver
-    url = DeployResponseUrl.find_by_deploy_id(@deploy.id).try(:response_url)
+    url = DeployResponseUrl.find_by(deploy_id: @deploy.id).try(:response_url)
     Faraday.new(url).post do |req|
       req.headers['Content-Type'] = 'application/json'
       req.body = ActiveSupport::JSON.encode message_body
