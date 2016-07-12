@@ -43,13 +43,13 @@ class SlackAppController < ApplicationController
     #   ],
     #   "callback_id"=>"deploy-123456", <-- maps to a deployment
     #   "user"=>{"id"=>"U0HAGH3AB", "name"=>"ben"}, <-- who clicked
-    #   "action_ts"=>"1468259216.482422", <-- need this to maybe update the message
-    #   "message_ts"=>"1468259019.000006",
+    #   "action_ts"=>"1468259216.482422",
+    #   "message_ts"=>"1468259019.000006", <-- need this to maybe update the message
     #   "response_url"=>"https://hooks.slack.com/actions/T0HAGP0J2/58691408951/iHdjN2zjX0dZ5rXyl84Otql7"
     # }
     payload = JSON.parse(params[:payload])
     check_slack_inputs!(payload)
-    render json: interact_response # This replaces the original message
+    render json: interact_response(payload) # This replaces the original message
   end
 
   def check_slack_inputs!(params)
@@ -74,11 +74,10 @@ class SlackAppController < ApplicationController
     return unknown_user unless deployer
 
     # Parse the command
-    projectname, branchname, stagename = params['text'].scan /(\S+)(?:\/(\S+))\s*(?:to\s+(.*))?/
-    puts projectname, branchname, stagename
+    projectname, branchname, stagename = params['text'].match(/(\S+)(?:\/(\S+))?\s*(?:to\s+(.*))?/).captures
 
     # Sanity checks
-    project = Project.find_by_name projectname
+    project = Project.find_by_param! projectname
     return unknown_project(projectname) unless project.present?
     return unauthorized_deployer unless deployer.deployer_for?(project)
     stage = project.stages.find_by_param!(stagename || 'production')

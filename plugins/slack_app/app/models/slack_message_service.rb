@@ -21,7 +21,7 @@ class SlackMessageService
       attachments: [
         {
           text: pr_str,
-          callback_id: deploy.id,
+          callback_id: @deploy.id,
           attachment_type: 'default',
           actions: [
             button(':+1: Approve', 'yes')
@@ -79,5 +79,23 @@ class SlackMessageService
 
   def pr_str
     "(list PRs here)"
+  end
+
+  def button(text, value, options = {})
+    ret = {
+      name: value,
+      value: value,
+      text: text,
+      type: 'button'
+    }
+    if options[:confirm]
+      ret['confirm'] = {
+        title: 'Are you sure?',
+        text: 'Confirm approval of this deployment.',
+        ok_text: 'Confirm',
+        dismiss_text: 'Never mind'
+      }
+    end
+    ret
   end
 end
