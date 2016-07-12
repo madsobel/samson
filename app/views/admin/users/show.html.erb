@@ -13,6 +13,9 @@
   <h2 class="section-subtitle">Project Level Roles</h2>
 
   <%= render partial: "shared/search_bar", locals: {url: admin_user_path, query: params[:search]} %>
+  <div class="users-csv">
+    <%= link_to "Download as CSV", users_csv_exports_path(user_id: @user.id) %>
+  </div>
 
   <table id="users" class="table table-hover table-condensed">
     <thead>

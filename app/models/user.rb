@@ -54,22 +54,53 @@ class User < ActiveRecord::Base
     scope
   end
 
-  def self.to_csv
-    @users = User.order(:id)
+  def self.to_csv(
+    inherited: false, deleted: false, project_id: nil, user_id: nil,
+    datetime: (Time.now.strftime "%Y%m%d_%H%M")
+  )
+    inherited = true if project_id || user_id
+    users = if user_id.nil?
+      deleted ? User.unscoped.order(:id) : User.order(:id)
+    else
+      user_id && User.unscoped.where(id: user_id)
+    end
+    if inherited
+      permissions_projects = project_id ? Project.where(id: project_id) : Project.all
+    end
+    total = permissions_count(project_id, inherited, users, permissions_projects)
+    summary = ["-", "Generated At", datetime, "Users", users.count.to_s, "Total entries", total.to_s]
+    options_applied = [
+      "-", "Options",
+      {
+        inherited: inherited,
+        deleted: deleted,
+        project_id: project_id,
+        user_id: user_id
+      }.to_json
+    ]
+
     CSV.generate do |csv|
-      csv << [
-        "id", "name", "email", "projectiD", "project", "role", User.count.to_s + " Users",
-        (User.count + UserProjectRole.joins(:user, :project).count).to_s + " Total entries"
-      ]
-      @users.find_each do |user|
-        csv << [user.id, user.name, user.email, "", "SYSTEM", user.role.name]
-        UserProjectRole.where(user_id: user.id).joins(:project).find_each do |user_project_role|
-          csv << [
-            user.id, user.name, user.email, user_project_role.project_id,
-            user_project_role.project.name, user_project_role.role.name
-          ]
+      csv << ["id", "name", "email", "projectiD", "project", "role", "deleted at"]
+      users.find_each do |user|
+        csv << user.csv_line unless project_id
+        if inherited
+          permissions_projects.find_each { |project| csv << user.csv_line(project) }
+        else
+          UserProjectRole.where(user_id: user.id).joins(:project).find_each do |user_project_role|
+            csv << user.csv_line(user_project_role.project)
+          end
         end
       end
+      csv << summary
+      csv << options_applied
+    end
+  end
+
+  def csv_line(project = nil)
+    if project
+      [id, name, email, project.id, project.name, effective_project_role(project), deleted_at]
+    else
+      [id, name, email, "", "SYSTEM", role.name, deleted_at]
     end
   end
 
@@ -121,6 +152,15 @@ class User < ActiveRecord::Base
     user_project_roles.find_by(project: project)
   end
 
+  def effective_project_role(project)
+    project_role = project_role_for(project)
+    if role_id == Role::SUPER_ADMIN.id
+      Role::ADMIN.name
+    else
+      role_id >= (project_role.try(:role_id) || 0) ? role.name : project_role.role.name
+    end
+  end
+
   def record_project_role_change
     record_update true
   end
@@ -135,5 +175,13 @@ class User < ActiveRecord::Base
 
   def set_token
     self.token = SecureRandom.hex
+  end
+
+  private_class_method def self.permissions_count(project_id, inherited, users, permissions_projects = [])
+    if inherited
+      project_id ? users.count : (1 + permissions_projects.count) * users.count
+    else
+      users.count + UserProjectRole.joins(:user, :project).count
+    end
   end
 end

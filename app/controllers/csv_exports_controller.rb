@@ -19,6 +19,19 @@ class CsvExportsController < ApplicationController
     @csv_export = CsvExport.new
   end
 
+  def new_users
+  end
+
+  def users
+    options = user_filter
+    respond_to do |format|
+      format.csv do
+        options[:datetime] = Time.now.strftime "%Y%m%d_%H%M"
+        send_data User.to_csv(options), type: :csv, filename: "Users_#{options[:datetime]}.csv"
+      end
+    end
+  end
+
   def show
     @csv_export = CsvExport.find(params[:id])
     respond_to do |format|
@@ -50,6 +63,15 @@ class CsvExportsController < ApplicationController
     else
       redirect_to @csv_export
     end
+  end
+
+  def user_filter
+    options = {}
+    options[:inherited] = params[:inherited] == "true"
+    options[:deleted] = params[:deleted] == "true"
+    options[:project_id] = params[:project_id].to_i unless params[:project_id].to_i == 0
+    options[:user_id] = params[:user_id].to_i unless params[:user_id].to_i == 0
+    options
   end
 
   def deploy_filter

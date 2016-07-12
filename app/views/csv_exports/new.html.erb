@@ -42,11 +42,9 @@
       </div>
     <% end %>
   </div>
-  <% if current_user.try(:admin?) %>
-    <div class="clearfix">
-      <hr />
-      <div><strong>Admin reports</strong></div>
-      <div><%= link_to "Download Users CSV Report", admin_users_path(format: "csv") %></div>
-    </div>
-  <% end %>
+  <div class="clearfix">
+    <hr />
+    <div><strong>Other reports</strong></div>
+    <div><%= link_to "Create Users Report", new_users_csv_exports_path %></div>
+  </div>
 </section>

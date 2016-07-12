@@ -10,8 +10,7 @@ class Admin::UsersController < ApplicationController
       format.html
       format.json { render json: @users }
       format.csv do
-        datetime = Time.now.strftime "%Y%m%d_%H%M"
-        send_data User.to_csv, type: :csv, filename: "Users_#{datetime}.csv"
+        redirect_to(users_csv_exports_path)
       end
     end
   end

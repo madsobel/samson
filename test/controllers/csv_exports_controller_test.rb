@@ -12,7 +12,7 @@ describe CsvExportsController do
         it "renders the full admin menu and new page" do
           get :new
           @response.body.must_include "Environment variables"
-          @response.body.must_include "Download Users CSV Report"
+          @response.body.must_include "Create Users Report"
           @response.body.must_include "Reports"
           @response.body.must_include "Create Deploys CSV Report"
         end
@@ -24,7 +24,7 @@ describe CsvExportsController do
         it "renders the limited admin menu and limited new page" do
           get :new
           @response.body.wont_include "Environment variables"
-          @response.body.wont_include "Download Users CSV Report"
+          @response.body.must_include "Create Users Report"
           @response.body.must_include "Reports"
           @response.body.must_include "Create Deploys CSV Report"
         end
@@ -72,6 +72,14 @@ describe CsvExportsController do
           get :index, format: :json
           @response.content_type.must_equal "application/json"
         end
+      end
+    end
+
+    describe "#new_users" do
+      it "renders form options" do
+        get :new_users
+        @response.body.must_include ">Project</option>"
+        @response.body.must_include ">Super Admin</option>"
       end
     end
 
@@ -183,6 +191,53 @@ describe CsvExportsController do
             @response.body.must_include "not found"
             assert_response 404
           end
+        end
+      end
+    end
+
+    describe "#users" do
+      describe "as csv" do
+        before { users(:super_admin).soft_delete! }
+        let(:expected) do
+          { inherited: false, deleted: false, project_id: nil, user_id: nil }
+        end
+
+        it "returns csv with default options" do
+          csv_test({format: :csv}, expected)
+        end
+
+        it "returns csv with inherited option" do
+          expected[:inherited] = true
+          csv_test({format: :csv, inherited: "true"}, expected)
+        end
+
+        it "returns csv with specific project option" do
+          expected[:inherited] = true
+          expected[:project_id] = Project.first.id
+          csv_test({format: :csv, project_id: Project.first.id}, expected)
+        end
+
+        it "returns csv with deleted option" do
+          expected[:deleted] = true
+          csv_test({format: :csv, deleted: "true"}, expected)
+        end
+
+        it "returns csv with specific user option and user is deleted" do
+          expected[:inherited] = true
+          expected[:user_id] = users(:super_admin).id
+          csv_test({format: :csv, user_id: users(:super_admin).id}, expected)
+        end
+
+        it "returns csv with multiple options" do
+          expected[:inherited] = true
+          expected[:deleted] = true
+          csv_test({format: :csv, inherited: "true", deleted: "true"}, expected)
+        end
+
+        def csv_test(options = {}, expected = {})
+          get :users, options
+          response.success?.must_equal true
+          CSV.parse(response.body).pop.pop.must_equal expected.to_json
         end
       end
     end
