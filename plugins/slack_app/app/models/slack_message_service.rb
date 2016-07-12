@@ -36,7 +36,7 @@ class SlackMessageService
       text: title_str,
       attachments: [
         {
-          text: pr_str + '\nDeploying…',
+          text: pr_str + "\nDeploying…",
           attachment_type: 'default',
           color: 'warning'
         }
@@ -78,7 +78,9 @@ class SlackMessageService
   end
 
   def pr_str
-    "(list PRs here)"
+    "PRs:\n" + @deploy.changeset.pull_requests.map do |pr|
+      "<#{pr.url}|##{pr.number}> - #{pr.title}"
+    end.join("\n")
   end
 
   def button(text, value, options = {})
