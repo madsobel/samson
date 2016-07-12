@@ -78,6 +78,7 @@ class SlackMessageService
   end
 
   def pr_str
+    return '' unless @deploy.changeset.pull_requests.any?
     "PRs:\n" + @deploy.changeset.pull_requests.map do |pr|
       "<#{pr.url}|##{pr.number}> - #{pr.title}"
     end.join("\n")
