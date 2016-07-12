@@ -1,4 +1,4 @@
-require 'URI'
+require 'uri'
 
 module SlackAppHelper
   def oauth_url(scopes)
