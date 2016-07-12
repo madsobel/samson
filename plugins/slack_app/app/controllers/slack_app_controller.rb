@@ -74,14 +74,22 @@ class SlackAppController < ApplicationController
     return unknown_user unless deployer
 
     # Parse the command
-    projectname, branchname, stagename = params['text'].match(/(\S+)(?:\/(\S+))?\s*(?:to\s+(.*))?/).captures
+    projectname, branchname, stagename = params['text'].match(/([^\s\/]+)(?:\/(\S+))?\s*(?:to\s+(.*))?/).captures
 
     # Sanity checks
-    project = Project.find_by_param! projectname
-    return unknown_project(projectname) unless project.present?
+    begin
+      project = Project.find_by_param! projectname
+    rescue ActiveRecord::RecordNotFound
+      return unknown_project(projectname)
+    end
+
     return unauthorized_deployer unless deployer.deployer_for?(project)
-    stage = project.stages.find_by_param!(stagename || 'production')
-    return unknown_stage(projectname, stagename) unless stage.present?
+
+    begin
+      stage = project.stages.find_by_param!(stagename || 'production')
+    rescue ActiveRecord::RecordNotFound
+      return unknown_stage(project, stagename)
+    end
 
     deploy_service = DeployService.new(deployer)
     deploy = deploy_service.deploy!(stage, reference: branchname || 'master')
@@ -92,11 +100,29 @@ class SlackAppController < ApplicationController
 
   def interact_response(payload)
     # This means someone clicked the "Approve" button in the channel
-    # TODO
-    # Is this user connected? If not, reply to them individually in a DM
-    # Can this user approve the deployment? If not, tell them in a DM, or maybe inline?
-    # Buddy up
     deploy = Deploy.find_by_id payload['callback_id']
+    return '_(Whoops, this deploy disappeared.)_' unless deploy
+
+    # Is this user connected?
+    buddy_identifier = SlackIdentifier.find_by_identifier payload['user']['id']
+    buddy = buddy_identifier.try(:user)
+    return {
+      replace_original: false,
+      text: unknown_user
+    } unless buddy
+
+    # Can this user approve the deployment?
+    return {
+      replace_original: false,
+      text: "You can't approve your own deploys, silly!"
+    } unless buddy != deploy.user
+    return {
+      replace_original: false,
+      text: "It doesn't look like you have permissions to approve that deploy."
+    } unless buddy.deployer_for?(deploy)
+
+    # Buddy up
+    deploy.confirm_buddy!(buddy)
     SlackMessageService.new(deploy).message_body
   end
 
@@ -106,16 +132,18 @@ class SlackAppController < ApplicationController
     "to connect your account."
   end
 
-  def unknown_project(name)
-    "Sorry, I don't know a project called `#{name}`."
+  def unknown_project(project)
+    "Sorry, I don't know a project called `#{project}`. Try your project's permalink."
   end
 
-  def unknown_stage(project, stage)
-    "Sorry, `#{project}` doesn't have a stage named `#{stage}`."
+  def unknown_stage(project, stagename)
+    "Sorry, " \
+    "<#{url_for controller: :projects, action: :show, id: project, only_path: false}|#{project.name}> " \
+    "doesn't have a stage named `#{stagename}`."
   end
 
-  def unauthorized_deployer(projectname)
+  def unauthorized_deployer(project)
     "Sorry, it doesn't look like you have permission to create a deployment" \
-    "on `#{projectname}`."
+    "on `#{project}`."
   end
 end

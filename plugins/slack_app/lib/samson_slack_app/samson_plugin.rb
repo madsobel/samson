@@ -56,9 +56,9 @@ end
   # Do stuff in here
 #end
 
-# Samson::Hooks.callback :before_deploy do
+Samson::Hooks.callback :before_deploy do
   # Do stuff in here
-# end
+end
 
 #Samson::Hooks.callback :after_deploy_setup do
   # Do stuff in here
