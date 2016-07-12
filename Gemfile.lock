@@ -10,8 +10,9 @@ GIT
       rest-client
 
 GIT
-  remote: git@github.com:attr-encrypted/attr_encrypted.git
+  remote: https://github.com/attr-encrypted/attr_encrypted.git
   revision: 73d8dbf319c8d21ea99d5c83e17734b1a63933e3
+  ref: 73d8dbf319c8d21ea99d5c83e17734b1a63933e3
   specs:
     attr_encrypted (3.0.1)
       encryptor (~> 3.0.0)

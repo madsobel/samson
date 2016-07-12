@@ -23,7 +23,7 @@ end
 gem 'bundler'
 gem 'dogstatsd-ruby'
 gem 'puma'
-gem 'attr_encrypted', git: 'git@github.com:attr-encrypted/attr_encrypted.git' # need > 3.0.1
+gem 'attr_encrypted', git: 'https://github.com/attr-encrypted/attr_encrypted.git', ref: '73d8dbf319c8d21ea99d5c83e17734b1a63933e3' # need > 3.0.1
 gem 'sawyer'
 gem 'dalli'
 gem 'omniauth'
