@@ -1,6 +1,14 @@
-class SlackMessageService
+class SlackMessage
   def initialize(deploy)
     @deploy = deploy
+  end
+
+  def deliver
+    url = DeployResponseUrl.find_by_deploy_id(@deploy.id).try(:response_url)
+    Faraday.new(url).post do |req|
+      req.headers['Content-Type'] = 'application/json'
+      req.body = ActiveSupport::JSON.encode message_body
+    end if url.present?
   end
 
   def message_body
@@ -10,6 +18,8 @@ class SlackMessageService
       running_body
     elsif @deploy.failed?
       failed_body
+    elsif @deploy.succeeded?
+      succeeded_body
     end
     ret['response_type'] = 'in_channel'
     ret

@@ -95,7 +95,7 @@ class SlackAppController < ApplicationController
     deploy = deploy_service.deploy!(stage, reference: branchname || 'master')
     DeployResponseUrl.create! deploy: deploy, response_url: params[:response_url]
 
-    SlackMessageService.new(deploy).message_body
+    SlackMessage.new(deploy).message_body
   end
 
   def interact_response(payload)
@@ -123,7 +123,7 @@ class SlackAppController < ApplicationController
 
     # Buddy up
     deploy.confirm_buddy!(buddy)
-    SlackMessageService.new(deploy).message_body
+    SlackMessage.new(deploy).message_body
   end
 
   def unknown_user
