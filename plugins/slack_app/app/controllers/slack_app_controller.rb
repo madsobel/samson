@@ -74,18 +74,21 @@ class SlackAppController < ApplicationController
     return unknown_user unless deployer
 
     # Parse the command
-    projectname, branchname, stagename = params['text'].scan /(\S+)\/(\S+)\s*(?:to\s+(.*))?/
+    projectname, branchname, stagename = params['text'].scan /(\S+)(?:\/(\S+))\s*(?:to\s+(.*))?/
     puts projectname, branchname, stagename
+
+    # Sanity checks
     project = Project.find_by_name projectname
     return unknown_project(projectname) unless project.present?
     return unauthorized_deployer unless deployer.deployer_for?(project)
     stage = project.stages.find_by_param!(stagename || 'production')
     return unknown_stage(projectname, stagename) unless stage.present?
 
-    # create deployment, associate deployment with response_url (need a new table)
-    # This allows us to update the message 5 times in 30 minutes (should be enough)
-    # -> suggested, started, finished/errored
+    deploy_service = DeployService.new(deployer)
+    deploy = deploy_service.deploy!(stage, reference: branchname || 'master')
+    DeployResponseUrl.create! deploy: deploy, response_url: params[:response_url]
 
+    SlackMessageService.new(deploy).message_body
   end
 
   def interact_response(payload)
@@ -93,48 +96,9 @@ class SlackAppController < ApplicationController
     # TODO
     # Is this user connected? If not, reply to them individually in a DM
     # Can this user approve the deployment? If not, tell them in a DM, or maybe inline?
-    # Approve the
-    'ok'
-  end
-
-  def message_body_for_deployment(deployment)
-    # In progress -> "Deploying..."
-    # Waiting for buddy: message with buttons
-    # Done: ":tada:"
-    {
-      text: "Deployment requested",
-      attachments: [
-        {
-          text: "Let's try this button thing.",
-          fallback: "Whoops, attachments aren't working right now.",
-          callback_id: 'deploy-123456',
-          color: 'warning',
-          attachment_type: 'default',
-          actions: [
-            button('Button :one:', 'one'),
-            button('Button :two:', 'two', confirm: true)
-          ]
-        }
-      ]
-    }
-  end
-
-  def button(text, value, options = {})
-    ret = {
-      name: value,
-      value: value,
-      text: text,
-      type: 'button'
-    }
-    if options[:confirm]
-      ret['confirm'] = {
-        title: 'Are you sure?',
-        text: 'Confirm approval of this deployment.',
-        ok_text: 'Confirm',
-        dismiss_text: 'Never mind'
-      }
-    end
-    ret
+    # Buddy up
+    deploy = Deploy.find_by_id payload['callback_id']
+    SlackMessageService.new(deploy).message_body
   end
 
   def unknown_user
