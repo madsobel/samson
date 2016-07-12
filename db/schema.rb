@@ -70,8 +70,8 @@ ActiveRecord::Schema.define(version: 20160711222417) do
   add_index "deploy_groups_stages", ["stage_id"], name: "index_deploy_groups_stages_on_stage_id", using: :btree
 
   create_table "deploy_response_urls", force: :cascade do |t|
-    t.integer  "deployment_id", limit: 4,   null: false
-    t.string   "response_url",  limit: 255, null: false
+    t.integer  "deploy_id",    limit: 4,   null: false
+    t.string   "response_url", limit: 255, null: false
     t.datetime "created_at"
     t.datetime "updated_at"
   end
