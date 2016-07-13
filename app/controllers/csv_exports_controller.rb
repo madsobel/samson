@@ -16,18 +16,21 @@ class CsvExportsController < ApplicationController
   end
 
   def new
-    @csv_export = CsvExport.new
-  end
-
-  def new_users
-  end
-
-  def users
-    options = user_filter
     respond_to do |format|
+      format.html do
+        if params[:type] == "users"
+          render :new_users
+        else
+          @csv_export = CsvExport.new
+        end
+      end
       format.csv do
-        options[:datetime] = Time.now.strftime "%Y%m%d_%H%M"
-        send_data User.to_csv(options), type: :csv, filename: "Users_#{options[:datetime]}.csv"
+        if params[:type] == "users"
+          options = user_filter
+          send_data User.to_csv(options), type: :csv, filename: "Users_#{options[:datetime]}.csv"
+        else
+          render body: "not found", status: :not_found
+        end
       end
     end
   end
@@ -71,6 +74,7 @@ class CsvExportsController < ApplicationController
     options[:deleted] = params[:deleted] == "true"
     options[:project_id] = params[:project_id].to_i unless params[:project_id].to_i == 0
     options[:user_id] = params[:user_id].to_i unless params[:user_id].to_i == 0
+    options[:datetime] = Time.now.strftime "%Y%m%d_%H%M"
     options
   end
 

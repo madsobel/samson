@@ -59,15 +59,15 @@ class User < ActiveRecord::Base
     datetime: (Time.now.strftime "%Y%m%d_%H%M")
   )
     inherited = true if project_id || user_id
-    users = if user_id.nil?
-      deleted ? User.unscoped.order(:id) : User.order(:id)
-    else
-      user_id && User.unscoped.where(id: user_id)
-    end
+    users = (deleted || user_id) ? User.unscoped : User
+    users = users.order(:id)
+    users = users.where(id: user_id) if user_id
     if inherited
-      permissions_projects = project_id ? Project.where(id: project_id) : Project.all
+      permissions_projects = project_id ? Project.where(id: project_id) : Project
+      total = project_id ? users.count : (1 + permissions_projects.count) * users.count
+    else
+      total = users.count + UserProjectRole.joins(:user, :project).count
     end
-    total = permissions_count(project_id, inherited, users, permissions_projects)
     summary = ["-", "Generated At", datetime, "Users", users.count.to_s, "Total entries", total.to_s]
     options_applied = [
       "-", "Options",
@@ -81,8 +81,8 @@ class User < ActiveRecord::Base
 
     CSV.generate do |csv|
       csv << ["id", "name", "email", "projectiD", "project", "role", "deleted at"]
-      users.find_each do |user|
-        csv << user.csv_line unless project_id
+      users.each do |user|
+        csv << user.csv_line(nil) unless project_id
         if inherited
           permissions_projects.find_each { |project| csv << user.csv_line(project) }
         else
@@ -96,12 +96,16 @@ class User < ActiveRecord::Base
     end
   end
 
-  def csv_line(project = nil)
-    if project
-      [id, name, email, project.id, project.name, effective_project_role(project), deleted_at]
-    else
-      [id, name, email, "", "SYSTEM", role.name, deleted_at]
-    end
+  def csv_line(project)
+    [
+      id,
+      name,
+      email,
+      project ? project.id : "",
+      project ? project.name : "SYSTEM",
+      project ? effective_project_role(project) : role.name,
+      deleted_at
+    ]
   end
 
   def self.create_or_update_from_hash(hash)
@@ -153,11 +157,11 @@ class User < ActiveRecord::Base
   end
 
   def effective_project_role(project)
-    project_role = project_role_for(project)
     if role_id == Role::SUPER_ADMIN.id
       Role::ADMIN.name
     else
-      role_id >= (project_role.try(:role_id) || 0) ? role.name : project_role.role.name
+      project_role = project_role_for(project)
+      role_id.to_i >= project_role.try(:role_id).to_i ? role.name : project_role.role.name
     end
   end
 
@@ -175,13 +179,5 @@ class User < ActiveRecord::Base
 
   def set_token
     self.token = SecureRandom.hex
-  end
-
-  private_class_method def self.permissions_count(project_id, inherited, users, permissions_projects = [])
-    if inherited
-      project_id ? users.count : (1 + permissions_projects.count) * users.count
-    else
-      users.count + UserProjectRole.joins(:user, :project).count
-    end
   end
 end

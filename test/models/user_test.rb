@@ -187,7 +187,7 @@ describe User do
     end
   end
 
-  describe ".to_csv and .permissions_count" do
+  describe ".to_csv" do
     before { users(:super_admin).soft_delete! }
 
     it "generates csv with default options" do
@@ -217,26 +217,35 @@ describe User do
     end
   end
 
-  describe "#csv_line and #effective_project_role" do
+  describe "#csv_line" do
+    let(:user) { users(:project_deployer) }
+    let(:project) { projects(:test) }
+
+    it "returns project line" do
+      user.csv_line(project).must_equal(
+        [user.id, user.name, user.email, project.id, project.name, Role::DEPLOYER.name, nil]
+      )
+    end
+
+    it "returns system line with deleted user" do
+      user.soft_delete!
+      user.csv_line(nil).must_equal(
+        [user.id, user.name, user.email, "", "SYSTEM", Role::VIEWER.name, user.deleted_at]
+      )
+    end
+  end
+
+  describe "#effective project role" do
     let(:user) { users(:project_deployer) }
     let(:project) { projects(:test) }
 
     it "returns Admin when project deployer and system super admin" do
       user.update_attribute(:role_id, Role::SUPER_ADMIN.id)
-      user.csv_line(project).values_at(0, 4, 5).must_equal [user.id, project.name, Role::ADMIN.name]
+      user.effective_project_role(project).must_equal Role::ADMIN.name
     end
 
     it "returns Deployer when project deployer and system viewer" do
-      user.csv_line(project).values_at(0, 4, 5).must_equal [user.id, project.name, Role::DEPLOYER.name]
-    end
-
-    it "returns Viewer when system viewer" do
-      user.csv_line.values_at(0, 4, 5).must_equal [user.id, "SYSTEM", Role::VIEWER.name]
-    end
-
-    it "returns Viewer when system viewer and deleted" do
-      user.soft_delete!
-      user.csv_line.values_at(0, 4, 5).must_equal [user.id, "SYSTEM", Role::VIEWER.name]
+      user.effective_project_role(project).must_equal Role::DEPLOYER.name
     end
   end
 

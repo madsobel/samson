@@ -92,7 +92,7 @@ describe Admin::UsersController do
     describe 'a csv GET to #index' do
       it 'redirects to csv_exports#users' do
         get :index, format: :csv
-        assert_redirected_to users_csv_exports_path
+        assert_redirected_to new_csv_export_path(format: :csv, type: :users)
       end
     end
 

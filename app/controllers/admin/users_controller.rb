@@ -10,7 +10,7 @@ class Admin::UsersController < ApplicationController
       format.html
       format.json { render json: @users }
       format.csv do
-        redirect_to(users_csv_exports_path)
+        redirect_to(new_csv_export_path(format: :csv, type: :users))
       end
     end
   end
